@@ -1,14 +1,14 @@
-## dQP: Differentiation Through Black-Box Quadratic Programming Solvers 
+## dQP
+<b>Differentiation Through Black-Box Quadratic Programming Solvers</b> [<a href="https://arxiv.org/pdf/2410.06324">Paper</a>] <br> 
+<a href="https://cwmagoon.github.io/">Magoon</a>, Yang, <a href="https://noamaig.github.io/">Aigerman</a>, <a href="https://shaharkov.github.io/">Kovalsky</a><br>
+Accepted. <i>NeurIPS (2025)</i>
+
 
 <p align=center>
   <img src="images/figure_introduction_increasing_structure_light.png" alt="teaser" width="300" />
   <span style="display:inline-block; width: 100px;"></span> <!-- Spacer element -->
   <img src="images/figure_introduction_geometry_ant_light.png" alt="teaser" width="300"  />
 </p>
-
-## Notice
-
-We are releasing dQP under this anonymous repository for ongoing review.
 
 ## Introduction
 
