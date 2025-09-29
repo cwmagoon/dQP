@@ -1,8 +1,7 @@
 ## dQP
 <b>Differentiation Through Black-Box Quadratic Programming Solvers</b> [<a href="https://arxiv.org/pdf/2410.06324">Paper</a>] <br> 
-<a href="https://cwmagoon.github.io/">Magoon</a>, Yang, <a href="https://noamaig.github.io/">Aigerman</a>, <a href="https://shaharkov.github.io/">Kovalsky</a><br>
+<a href="https://cwmagoon.github.io/">Magoon</a>, <a href="www.linkedin.com/in/yang-fengyu">Yang</a>, <a href="https://noamaig.github.io/">Aigerman</a>, <a href="https://shaharkov.github.io/">Kovalsky</a><br>
 Accepted. <i>NeurIPS (2025)</i>
-
 
 <p align=center>
   <img src="images/figure_introduction_increasing_structure_light.png" alt="teaser" width="300" />
@@ -71,27 +70,27 @@ Experiment-specific packages are detailed in the experiment section.
 
 While dQP described in the snippet above suppresses default options, dQP has the following tunable settings.
 
-|          Option          |                                     Meaning                                     |
-|:------------------------:|:-------------------------------------------------------------------------------:|
+|          Option          |                                                  Meaning                                                   |
+|:------------------------:|:----------------------------------------------------------------------------------------------------------:|
 |        qp_solver         | QP solver (supported by [[qpsolvers]](https://github.com/qpsolvers/qpsolvers?tab=readme-ov-file#solvers)). |
-|        lin_solver        |                 Linear solver for the derivative (algorithm 1).                 |
-|        solve_type        |                          Dense or sparse (CSC format).                          |
-|         eps_abs          |               Absolute tolerance on feasibility, optimality, etc.               |
-|         eps_rel          |                               Relative tolerance.                               |
-|        eps_active        |               Tolerance to decide the active set of constraints.                |
-|      dual_available      |      Assert whether a given solver outputs duals, if not, solve for them.       |
-|  normalize_constraints   |       Normalize each row of the constraints, so residuals are distances.        |
-|      refine_active       |                 Use heuristic active set refinement in Fig. 6.                  |
-| warm_start_from_previous |  Save previous solution and use to warm-start (useful in bilevel optimization)  |
-|       omp_parallel       |          Use a simple parallel for loop for the forward over batches.           |
-|       empty_batch        |               Include an empty batch dimension, even for batch 1.               |
-|    qp_solver_keywords    |                       Additional keywords for qpsolvers.                        |
-|         verbose          |                         Display additional information.                         |
-|           time           |                                Display timings.                                 |
-|        check_PSD         |        Verify that Q is positive semi-definite (dense only), is costly.         |
+|        lin_solver        |                              Linear solver for the derivative (algorithm 1).                               |
+|        solve_type        |                                       Dense or sparse (CSC format).                                        |
+|         eps_abs          |                            Absolute tolerance on feasibility, optimality, etc.                             |
+|         eps_rel          |                                            Relative tolerance.                                             |
+|        eps_active        |                             Tolerance to decide the active set of constraints.                             |
+|      dual_available      |                    Assert whether a given solver outputs duals, if not, solve for them.                    |
+|  normalize_constraints   |                     Normalize each row of the constraints, so residuals are distances.                     |
+|      refine_active       |                                Use heuristic active set refinement (Fig. 7)                                |
+| warm_start_from_previous |               Save previous solution and use to warm-start (useful in bilevel optimization)                |
+|       omp_parallel       |                        Use a simple parallel for loop for the forward over batches.                        |
+|       empty_batch        |                            Include an empty batch dimension, even for batch 1.                             |
+|    qp_solver_keywords    |                                     Additional keywords for qpsolvers.                                     |
+|         verbose          |                                      Display additional information.                                       |
+|           time           |                                              Display timings.                                              |
+|        check_PSD         |                      Verify that Q is positive semi-definite (dense only), is costly.                      |
 
 <b> Which solver do I choose for my problem? </b> First, we suggest perusing open-source benchmarks and the basic classes of QP solver. 
-For more information, we include a simple diagnostic tool which iterates through available QP solvers and times the forward/backward solves of your example QP (Figure 7).
+For more information, we include a simple diagnostic tool which iterates through available QP solvers and times the forward/backward solves of your example QP (Fig. 6).
 
 ## Experiments
 
