@@ -1,7 +1,7 @@
 ## dQP
 <b>Differentiation Through Black-Box Quadratic Programming Solvers</b> [<a href="https://arxiv.org/pdf/2410.06324">Paper</a>] [<a href="https://neurips.cc/virtual/2025/loc/san-diego/poster/119180">Video</a>] [<a href="https://neurips.cc/media/PosterPDFs/NeurIPS%202025/119180.png?t=1762316861.5409572">Poster</a>] <br> 
 <a href="https://cwmagoon.github.io/">Magoon<sup>\*</sup></a>, <a href="https://563925743.github.io/">Yang<sup>\*</sup></a>, <a href="https://noamaig.github.io/">Aigerman</a>, <a href="https://shaharkov.github.io/">Kovalsky</a><br>
-<i>NeurIPS (2025)</i>
+<i>NeurIPS (2025)</i>   
 
 <p align=center>
   <img src="https://github.com/cwmagoon/dQP/blob/main/images/figure_introduction_increasing_structure_light.png?raw=true" alt="teaser" width="300" />
@@ -10,7 +10,7 @@
 </p>
 
 ## Installation
-
+    
 [![PyPI version](https://img.shields.io/pypi/v/libdqp.svg)](https://pypi.org/project/libdqp/)
 ```bash
 pip install libdqp
