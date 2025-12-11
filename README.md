@@ -3,11 +3,33 @@
 <a href="https://cwmagoon.github.io/">Magoon<sup>\*</sup></a>, <a href="https://563925743.github.io/">Yang<sup>\*</sup></a>, <a href="https://noamaig.github.io/">Aigerman</a>, <a href="https://shaharkov.github.io/">Kovalsky</a><br>
 <i>NeurIPS (2025)</i>   
 
+
 <p align=center>
   <img src="https://github.com/cwmagoon/dQP/blob/main/images/figure_introduction_increasing_structure_light.png?raw=true" alt="teaser" width="300" />
   <span style="display:inline-block; width: 100px;"></span> <!-- Spacer element -->
   <img src="https://github.com/cwmagoon/dQP/blob/main/images/figure_introduction_geometry_ant_light.png?raw=true" alt="teaser" width="300"  />
 </p>
+
+- [Installation](#installation)
+- [Usage](#usage)
+- [Options](#options)
+- [Experiments](#development-setup-and-experiments)
+
+**dQP** is a modular framework for differentiating the solution to a quadratic programming problem (QP) with respect to its parameters, enabling the seamless integration of QPs into machine learning architectures and bilevel optimization. 
+**dQP** supports <u>over 15 state-of-the-art QP solvers</u> by attaching a custom PyTorch layer to the open-source QP interface [[qpsolvers]](https://github.com/qpsolvers/qpsolvers).
+It solves problems of the form,
+
+<p align="center">
+<img src="https://github.com/cwmagoon/dQP/blob/main/images/QP_formulation.png?raw=true" alt="QP" width="500"/>
+</p>
+
+The key mathematical structure we use to aid modularity is the special polyhedral geometry of a QP. 
+This is illustrated below, where a QP is <u>locally</u> equivalent to a purely equality constrained problem, <i>i.e.</i>, both their solutions and derivatives match.
+
+<p align="center">
+<img src="https://github.com/cwmagoon/dQP/blob/main/images/figure_methods_schematic_light.png?raw=true" alt="teaser" width="500"/>
+</p>
+
 
 ## Installation
     
@@ -16,20 +38,12 @@
 pip install libdqp
 ```
 
-Our [[PyPI package]](https://pypi.org/project/libdqp/) includes PyTorch, open-source python interfaces to various QP and linear solvers, and tools for sparsity. Some QP solvers such as Gurobi are commercial, but offer [[academic licenses]](https://www.gurobi.com/academia/academic-program-and-licenses/). 
-Experiment-specific packages are detailed in the experiment section.
+**dQP** is distributed via [[PyPI]](https://pypi.org/project/libdqp/) with solvers included. QP solvers like Gurobi are commercial but offer [[academic licenses]](https://www.gurobi.com/academia/academic-program-and-licenses/). 
 
-## Introduction
 
-dQP is a modular framework for differentiating the solution to a quadratic programming problem (QP) with respect to its parameters, enabling the seamless integration of QPs into machine learning architectures and bilevel optimization. 
-dQP supports <u>over 15 state-of-the-art QP solvers</u> by attaching a custom PyTorch layer to the open-source QP interface [[qpsolvers]](https://github.com/qpsolvers/qpsolvers).
-It solves problems of the form,
+## Usage
 
-<p align="center">
-<img src="https://github.com/cwmagoon/dQP/blob/main/images/QP_formulation.png?raw=true" alt="QP" width="500"/>
-</p>
-
-and is used as in the following example which uses QP solver [[OSQP]](https://github.com/osqp/osqp) and sparse symmetric indefinite linear solver [[QDLDL]](https://github.com/osqp/qdldl-python),
+The following example applies [[OSQP]](https://github.com/osqp/osqp) for the forward pass and sparse symmetric indefinite linear solver [[QDLDL]](https://github.com/osqp/qdldl-python) for the backward pass.
 
 ```python
 import torch
@@ -38,8 +52,8 @@ import numpy as np
 from dqp import dQP
 
 # -----------------------------------------------------------------------------
-#   minimize     (1/2) xᵀ P x + qᵀ x
-#   subject to   C x ≤ d
+#   minimize     (1/2) zᵀ P z + qᵀ z
+#   subject to   C z ≤ d
 #
 #   P = 2 I₂
 #   q = [0, 0]
@@ -48,7 +62,7 @@ from dqp import dQP
 #         [ 0 -1] ]
 #   d = [-1, 0, 0]
 #
-#   x* = [1/2, 1/2]
+#   z* = [1/2, 1/2]
 #   μ* = [1, 0, 0] (first constraint active)
 # -----------------------------------------------------------------------------
 
@@ -58,7 +72,8 @@ from dqp import dQP
 
 rows_P = torch.LongTensor([0, 1])
 cols_P = torch.LongTensor([0, 1])
-vals_P = torch.tensor([2.0, 2.0], dtype=torch.float64, requires_grad=True) # sparse matrix nonzero values are differentiable (0s assumed fixed)
+# sparse matrix nonzero values are differentiable (0s assumed fixed)
+vals_P = torch.tensor([2.0, 2.0], dtype=torch.float64, requires_grad=True) 
 P = torch.sparse_coo_tensor(
     torch.stack([rows_P, cols_P]),
     vals_P,
@@ -92,16 +107,16 @@ settings = dQP.build_settings(
 layer = dQP.dQP_layer(settings=settings)
 
 # Solve QP (forward pass)
-x_star, lambda_star, mu_star, _, _ = layer(
+z_star, lambda_star, mu_star, _, _ = layer(
     P.to_sparse_csc(), q, C.to_sparse_csc(), d
 )
 
 print("-"*80)
-x_exact = np.array([0.5, 0.5])
+z_exact = np.array([0.5, 0.5])
 mu_exact = np.array([1.0, 0.0, 0.0])
 print("dQP active set J:", layer.active)
-print("dQP x*:", x_star.detach().numpy())
-print("Analytical x*:", x_exact)
+print("dQP z*:", z_star.detach().numpy())
+print("Analytical z*:", z_exact)
 print("dQP μ* :", mu_star.detach().numpy())
 print("Analytical μ*:", mu_exact)
 print("-"*80)
@@ -109,30 +124,31 @@ print("-"*80)
 # -----------------------------------------------------------------------------
 # Backpropogate (differentiate) through some scalar-valued loss. 
 # A simple example is the optimal value function:
-#       L(x*) = p* = (1/2) x*ᵀ P x* + qᵀ x*
+#       L(z*) = p* = (1/2) z*ᵀ P z* + qᵀ z*
 #
-# In this case, the Envelope theorem https://en.wikipedia.org/wiki/Envelope_theorem yields
-# a simple expression, independent of dL/dx^*, to use as reference
-#       ∇_P L = (1/2) x* x*ᵀ 
-#       ∇_q L = x*
-#       ∇_C L = μ* x*ᵀ  
+# In this case, the Envelope theorem https://en.wikipedia.org/wiki/Envelope_theorem 
+# yields a simple expression, independent of dL/dx^*, to use as reference
+#       ∇_P L = (1/2) z* z*ᵀ 
+#       ∇_q L = z*
+#       ∇_C L = μ* z*ᵀ  
 #       ∇_d L = -μ*
  # -----------------------------------------------------------------------------
 
 # Evaluate differentiable loss and backpropogate using torch autograd
-L = 0.5 * x_star @ (torch.sparse.mm(P, x_star.unsqueeze(1)).squeeze(1)) + q @ x_star
+L = 0.5 * z_star @ (torch.sparse.mm(P, z_star.unsqueeze(1)).squeeze(1)) + q @ z_star
 L.backward()
 
 print("-"*80)
-print("dQP ∇_P L:", vals_P.grad.detach().numpy()) # gradient projected onto subspace of nonzero values
-grad_P_exact = 0.5 * np.outer(x_exact, x_exact)
+# gradient projected onto subspace of nonzero values
+print("dQP ∇_P L:", vals_P.grad.detach().numpy()) 
+grad_P_exact = 0.5 * np.outer(z_exact, z_exact)
 print("Analytical ∇_P L:", grad_P_exact[rows_P, cols_P]) 
 
 print("dQP ∇_q L:     ", q.grad.detach().numpy())
-print("Analytical ∇_q L:     ", x_exact)
+print("Analytical ∇_q L:     ", z_exact)
 
 print("dQP ∇_C L:", vals_C.grad.detach().numpy())
-grad_C_exact = np.outer(mu_exact, x_exact)
+grad_C_exact = np.outer(mu_exact, z_exact)
 print("Analytical ∇_C L:", grad_C_exact[rows_C, cols_C])
 
 print("dQP ∇_d L:     ", d.grad.detach().numpy())
@@ -140,16 +156,9 @@ print("Analytical ∇_d L:     ", -mu_exact)
 print("-"*80)
 ```
 
-The key mathematical structure we use to aid modularity is the special polyhedral geometry of a QP. 
-This is illustrated below, where a QP is <u>locally</u> equivalent to a purely equality constrained problem, <i>i.e.</i>, both their solutions and derivatives match.
-
-<p align="center">
-<img src="https://github.com/cwmagoon/dQP/blob/main/images/figure_methods_schematic_light.png?raw=true" alt="teaser" width="500"/>
-</p>
-
 ## Options
 
-While dQP described in the snippet above suppresses default options, dQP has the following tunable settings.
+**dQP** supports a wide range of tunable settings.
 
 |          Option          |                                                  Meaning                                                   |
 |:------------------------:|:----------------------------------------------------------------------------------------------------------:|

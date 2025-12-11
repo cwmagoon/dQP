@@ -5,8 +5,8 @@ import qpsolvers
 
 def qp_2d(qp_solver):
     # -----------------------------------------------------------------------------
-    #   minimize     (1/2) xᵀ P x + qᵀ x
-    #   subject to   C x ≤ d
+    #   minimize     (1/2) zᵀ P z + qᵀ z
+    #   subject to   C z ≤ d
     #
     #   P = 2 I₂
     #   q = [0, 0]
@@ -15,7 +15,7 @@ def qp_2d(qp_solver):
     #         [ 0 -1] ]
     #   d = [-1, 0, 0]
     #
-    #   x* = [1/2, 1/2]
+    #   z* = [1/2, 1/2]
     #   μ* = [1, 0, 0] (first constraint active)
     # -----------------------------------------------------------------------------
 
@@ -59,15 +59,15 @@ def qp_2d(qp_solver):
     )
     layer = dQP.dQP_layer(settings=settings)
 
-    x_star, lambda_star, mu_star, _, _ = layer(P.to_sparse_csc(), q, C.to_sparse_csc(), d)
+    z_star, lambda_star, mu_star, _, _ = layer(P.to_sparse_csc(), q, C.to_sparse_csc(), d)
 
     x_exact = np.array([0.5, 0.5])
     mu_exact = np.array([1.0, 0.0, 0.0])
 
     print("-"*80)
     print("dQP active set J:", layer.active)
-    print("dQP x*:", x_star.detach().numpy())
-    print("Analytical x*:", x_exact)
+    print("dQP z*:", z_star.detach().numpy())
+    print("Analytical z*:", x_exact)
     print("dQP μ* :", mu_star.detach().numpy())
     print("Analytical μ*:", mu_exact)
     print("-"*80)
@@ -75,16 +75,16 @@ def qp_2d(qp_solver):
     # -----------------------------------------------------------------------------
     # Backpropogate (differentiate) through some scalar-valued loss. 
     # A simple example is the optimal value function:
-    #       L(x*) = p* = (1/2) x*ᵀ P x* + qᵀ x*
+    #       L(z*) = p* = (1/2) z*ᵀ P z* + qᵀ z*
     #
     # In this case, the Envelope theorem https://en.wikipedia.org/wiki/Envelope_theorem yields
     # a simple expression, independent of dL/dx^*, to use as reference
-    #       ∇_P L = (1/2) x* x*ᵀ 
-    #       ∇_q L = x*
-    #       ∇_C L = μ* x*ᵀ  
+    #       ∇_P L = (1/2) z* z*ᵀ 
+    #       ∇_q L = z*
+    #       ∇_C L = μ* z*ᵀ  
     #       ∇_d L = -μ*
     # -----------------------------------------------------------------------------
-    L = 0.5 * x_star @ (torch.sparse.mm(P, x_star.unsqueeze(1)).squeeze(1)) + q @ x_star
+    L = 0.5 * z_star @ (torch.sparse.mm(P, z_star.unsqueeze(1)).squeeze(1)) + q @ z_star
     L.backward()
 
     print("dQP ∇_P L:", vals_P.grad.detach().numpy())
@@ -109,5 +109,3 @@ if __name__ == "__main__":
             qp_2d(solver)
         except Exception as e:
             print(e)
-
-    # qp_2d("gurobi") # requires license
