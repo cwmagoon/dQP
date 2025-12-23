@@ -10,8 +10,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # sys.path.append('../../src')
-import dQP
-import lin_solvers
+
+src_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(src_dir)
+sys.path.append(parent_dir)
+
+from dqp import lin_solvers
+from dqp import dQP
 
 # use in debugging mode in forward of dQP
 # example:
@@ -26,16 +31,45 @@ def save_for_benchmark(save_name,Q,q,G,h,A,b):
     np.savez(save_path, Q=Q,q=q,G=G,h=h,A=A,b=b)
     return
 
-def test_qp(Q,q,G,h,A,b,n_sample,available_qp_solvers):
+def generate_random_qp(nprob,dim,nIneq,nEq,seed=1,dtype="torch"):
+    
+    torch.manual_seed(seed)
+    P = torch.rand(nprob,dim,dim,dtype=torch.float64)
+    Q = torch.bmm(P,P.transpose(1,2)) + 1e-4 * torch.eye(dim).unsqueeze(0).expand(nprob,dim,dim)
+    q = torch.rand(nprob,dim,dtype=torch.float64)
+    
+    G = torch.rand(nprob,nIneq, dim,dtype=torch.float64)
+    s0 = torch.ones(nprob,nIneq,1,dtype=torch.float64)
+    z0 = torch.ones(nprob,dim,1,dtype=torch.float64)
+    h = torch.bmm(G,z0) + s0
+    
+    
+    A = torch.rand(nprob,nEq, dim,dtype=torch.float64)
+    b = torch.bmm(A,z0)
+
+    Q.requires_grad_(True)
+    G.requires_grad_(True)
+    A.requires_grad_(True)
+    q.squeeze_(-1).requires_grad_(True)
+    h.squeeze_(-1).requires_grad_(True)
+    b.squeeze_(-1).requires_grad_(True)
+    if dtype=="numpy":
+        return Q.detach().numpy(),q.detach().numpy(),G.detach().numpy(),h.detach().numpy(),A.detach().numpy(),b.detach().numpy()
+    return Q,q,G,h,A,b
+
+def test_qp(Q,q,G,h,A,b,n_sample,available_qp_solvers,ref_qp_solver=None):
     n_solvers = len(available_qp_solvers)
     main_kwargs = {"verbose": False}
 
-    if "gurobi" in available_qp_solvers:
-        ref_solver = "gurobi"
-    else:
-        ref_solver = "cvxopt"
-    ref_solver_kwargs = dQP.set_solver_tolerance(main_kwargs.copy(), ref_solver, 1e-8, 1e-8)
-    ref_solver_kwargs["solver"] = ref_solver
+    if (ref_qp_solver is None) and ("osqp" in available_qp_solvers):
+        # ref_solver = "gurobi"
+        ref_qp_solver = "osqp"
+    elif (ref_qp_solver is None):
+        ref_qp_solver = "cvxopt"
+
+    print("Using reference solver: " + ref_qp_solver)
+    ref_solver_kwargs = dQP.set_solver_tolerance(main_kwargs.copy(), ref_qp_solver, 1e-8, 1e-8)
+    ref_solver_kwargs["solver"] = ref_qp_solver
     ref_solution = dQP.call_single_qpsolvers(Q, q, G, h, A, b, ref_solver_kwargs)
     x_ref = ref_solution.x
 
@@ -65,8 +99,8 @@ def test_qp(Q,q,G,h,A,b,n_sample,available_qp_solvers):
                     t1 = time.time()
                 except Exception as e:
                     print(repr(e))
-                    t_qp[jj,ii,kk] = np.infty
-                    e_qp[jj,ii,kk] = np.infty
+                    t_qp[jj,ii,kk] = np.inf
+                    e_qp[jj,ii,kk] = np.inf
                     break
 
                 t_qp[jj,ii,kk] = t1-t0
@@ -94,8 +128,9 @@ def test_linear(Q,q,G,h,A,b,n_sample,available_linear_solvers,available_qp_solve
         lin_solver = lin_solvers.sparse_solve
         ref_linear_solver = "scipy SPLU"
 
-    if "gurobi" in available_qp_solvers: # QP included
-        ref_qp_solver = "gurobi" # TODO : maybe need to choose a solver more sensitive to tolerance choice?
+    if "osqp" in available_qp_solvers: # QP included
+        # ref_qp_solver = "gurobi" # TODO : maybe need to choose a solver more sensitive to tolerance choice?
+        ref_qp_solver = "osqp"
         # ref_qp_solver = "piqp"
     else:
         ref_qp_solver = "cvxopt" # the difference between cvxopt and dapq is significant! O(1) error v.s. O(1e-13)
@@ -172,14 +207,14 @@ def test_linear(Q,q,G,h,A,b,n_sample,available_linear_solvers,available_qp_solve
                         t1 = time.time()
 
                     if grad is None:
-                        t[jj, ii, kk] = np.infty
-                        e[jj, ii, kk] = np.infty
+                        t[jj, ii, kk] = np.inf
+                        e[jj, ii, kk] = np.inf
                         break
 
                 except Exception as e:
                     print(repr(e))
-                    t[jj,ii,kk] = np.infty
-                    e[jj,ii,kk] = np.infty
+                    t[jj,ii,kk] = np.inf
+                    e[jj,ii,kk] = np.inf
                     break
 
                 t[jj,ii,kk] = t1-t0
@@ -382,9 +417,9 @@ def visualize_qp(t,t_sd,e,solvers,save_name):
     for i in range(3):
         for j in range(len(i_sort)):
             if np.abs(e[i,j]) < 1e-16:
-                e_label[i] += ["ref"]
+                e_label[i] += ["MP"]
             else:
-                # e_label[i] += ["%0.1E" % e[i,j]]
+            # e_label[i] += ["%0.1E" % e[i,j]]
                 e_label[i] += [str(int(np.floor(np.log10(e[i,j])))) if e[i,j] != np.inf else "inf"]
 
     data = {
@@ -419,8 +454,12 @@ def visualize_qp(t,t_sd,e,solvers,save_name):
     ax.set_ylabel("Time (s)")
     ax.set_yscale('log')
 
-    file_path = os.path.dirname(os.path.realpath(__file__))  # reference this file
-    fig_path = file_path + "/../experiments/diagnostic/results/" + save_name + "_qp.pdf"
+    # save in cwd
+    fig_path = save_name + "_qp.pdf"
+
+    # file_path = os.path.dirname(os.path.realpath(__file__))  # reference this file
+    # fig_path = file_path + "/../experiments/diagnostic/results/" + save_name + "_qp.pdf"
+    
     plt.savefig(fig_path)
     # plt.show()
 
@@ -487,9 +526,12 @@ def visualize_linear(t,t_sd,e,cond,solvers,save_name,is_full,ref_qp_solver,fig=N
     else:
         ax.set_title("Reduced Derivative Fixed QP Solver: " + ref_qp_solver + " Ref. D conditioning: " + str(cond))
 
-    file_path = os.path.dirname(os.path.realpath(__file__))  # reference this file
+    # save in cwd
+    fig_path = save_name + "_qp-" + ref_qp_solver + "_linear.pdf"
+
+    # file_path = os.path.dirname(os.path.realpath(__file__))  # reference this file
     # if is_full:
-    fig_path = file_path + "/../experiments/diagnostic/results/" + save_name + "_qp-" + ref_qp_solver + "_linear.pdf"
+    # fig_path = file_path + "/../experiments/diagnostic/results/" + save_name + "_qp-" + ref_qp_solver + "_linear.pdf"
     # else:
     #     fig_path = file_path + "/../experiments/diagnostic/results/" + save_name + "_qp-" + ref_qp_solver + "_reduced_linear.pdf"
     plt.savefig(fig_path)
@@ -497,20 +539,22 @@ def visualize_linear(t,t_sd,e,cond,solvers,save_name,is_full,ref_qp_solver,fig=N
 
     return fig
 
-def benchmark(save_name):
-    file_path = os.path.dirname(os.path.realpath(__file__))  # reference this file
-    save_path = file_path + "/../experiments/diagnostic/data/" + save_name + ".npz"
-    data = np.load(save_path,allow_pickle=True)
+def benchmark(save_name,Q,q,G,h,A,b,ref_qp_solver=None):
 
-    Q = data["Q"][()]
-    q = data["q"][()]
-    G = data["G"][()]
-    h = data["h"][()]
-    A = data["A"][()]
-    b = data["b"][()]
+    if Q is None: # we originally called diagnostic examples saved to npz files in experiments
+        file_path = os.path.dirname(os.path.realpath(__file__)) 
+        save_path = file_path + "/../experiments/diagnostic/data/" + save_name + ".npz"
+        data = np.load(save_path,allow_pickle=True)
+        Q = data["Q"][()]
+        q = data["q"][()]
+        G = data["G"][()]
+        h = data["h"][()]
+        A = data["A"][()]
+        b = data["b"][()]
+
     is_sparse = sp.sparse.issparse(Q)
 
-    # dQP doesn't have this constraint, but this copy of the code does?
+    # TODO: dQP doesn't have this constraint, but this copy of the code does?
     if h.ndim== 1:
         h = np.expand_dims(h,-1)
 
@@ -526,7 +570,7 @@ def benchmark(save_name):
     else:
         available_qp_solvers = qpsolvers.dense_solvers
 
-    t_qp, t_sd_qp, e_qp = test_qp(Q,q,G,h,A,b,30,available_qp_solvers)
+    t_qp, t_sd_qp, e_qp = test_qp(Q,q,G,h,A,b,30,available_qp_solvers,ref_qp_solver)
     visualize_qp(t_qp,t_sd_qp,e_qp,available_qp_solvers,save_name)
 
     ################################################################################################3
@@ -545,8 +589,17 @@ def benchmark(save_name):
     # solve it and use the stored class data in dQP
 
     return
-
+    
 if __name__ == "__main__":
-    benchmark("cross")
+    # benchmark("cross")
     # benchmark("sudoku3x3")
     # benchmark("random_reduced_vs_full")
+
+    Q,q,G,h,A,b = generate_random_qp(500,50,50)
+    # Q, G, A = [sp.sparse.csc_matrix(M) for M in (Q, G, A)] # just to debug
+    benchmark("random",Q,q,G,h,A,b)
+
+
+
+
+

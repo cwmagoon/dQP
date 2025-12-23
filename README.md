@@ -14,6 +14,7 @@
 - [Usage](#usage)
 - [Options](#options)
 - [Experiments](#development-setup-and-experiments)
+- [Author Notes](#author-notes)
 
 **dQP** is a modular framework for differentiating the solution to a quadratic programming problem (QP) with respect to its parameters, enabling the seamless integration of QPs into machine learning architectures and bilevel optimization. 
 **dQP** supports <u>over 15 state-of-the-art QP solvers</u> by attaching a custom PyTorch layer to the open-source QP interface [[qpsolvers]](https://github.com/qpsolvers/qpsolvers).
@@ -38,12 +39,12 @@ This is illustrated below, where a QP is <u>locally</u> equivalent to a purely e
 pip install libdqp
 ```
 
-**dQP** is distributed via [[PyPI]](https://pypi.org/project/libdqp/) with solvers included. QP solvers like Gurobi are commercial but offer [[academic licenses]](https://www.gurobi.com/academia/academic-program-and-licenses/). 
+**dQP** is distributed via [[PyPI]](https://pypi.org/project/libdqp/) with easily pip-installable solvers included. See [[qpsolvers]](https://github.com/qpsolvers/qpsolvers) for information on including more. Solvers like PyPardiso are OS dependent and are excluded if necessary on the target platform. QP solvers like Gurobi are commercial but offer [[academic licenses]](https://www.gurobi.com/academia/academic-program-and-licenses/). 
 
 
 ## Usage
 
-The following example applies [[OSQP]](https://github.com/osqp/osqp) for the forward pass and sparse symmetric indefinite linear solver [[QDLDL]](https://github.com/osqp/qdldl-python) for the backward pass.
+The following example applies [[OSQP]](https://github.com/osqp/osqp) for the forward pass and sparse symmetric indefinite linear solver [[QDLDL]](https://github.com/osqp/qdldl-python) for the backward pass. A companion code in the examples folder iterates through all loaded QP solvers on the same problem.
 
 ```python
 import torch
@@ -122,17 +123,18 @@ print("Analytical μ*:", mu_exact)
 print("-"*80)
 
 # -----------------------------------------------------------------------------
-# Backpropogate (differentiate) through some scalar-valued loss. 
+# Backpropagate (differentiate) through some scalar-valued loss. 
 # A simple example is the optimal value function:
-#       L(z*) = p* = (1/2) z*ᵀ P z* + qᵀ z*
+#       p*(θ) = f(z*(θ),θ) = (1/2) z*ᵀ P z* + qᵀ z*
 #
 # In this case, the Envelope theorem https://en.wikipedia.org/wiki/Envelope_theorem 
-# yields a simple expression, independent of dL/dx^*, to use as reference
-#       ∇_P L = (1/2) z* z*ᵀ 
-#       ∇_q L = z*
-#       ∇_C L = μ* z*ᵀ  
-#       ∇_d L = -μ*
- # -----------------------------------------------------------------------------
+# yields a simple expression to use as reference, 
+# by simplifying the term ∇_z f • ∇_θ z* using Lagrangian stationarity at z*(θ), 
+#       ∇_P p = (1/2) z* z*ᵀ 
+#       ∇_q p = z*
+#       ∇_C p = μ* z*ᵀ  
+#       ∇_d p = -μ*
+# -----------------------------------------------------------------------------
 
 # Evaluate differentiable loss and backpropogate using torch autograd
 L = 0.5 * z_star @ (torch.sparse.mm(P, z_star.unsqueeze(1)).squeeze(1)) + q @ z_star
@@ -179,8 +181,7 @@ print("-"*80)
 |           time           |                                              Display timings.                                              |
 |        check_PSD         |                      Verify that Q is positive semi-definite (dense only), is costly.                      |
 
-<b> Which solver do I choose for my problem? </b> First, we suggest perusing open-source benchmarks and the basic classes of QP solver. 
-For more information, we include a simple diagnostic tool which iterates through available QP solvers and times the forward/backward solves of your example QP (Fig. 6).
+<b> Which solver do I choose for my problem? </b> We suggest perusing open-source benchmarks and reading about the basic classes of QP solver (e.g. first and second order). **dQP** includes a crude diagnostic tool for quickly evaluating the performance of QP solvers on a user-provided example (see examples folder).
 
 ## Development Setup and Experiments
 
@@ -229,3 +230,20 @@ conda install -c conda-forge ffmpeg
 * [Benchmark Experiment](./experiments/mega_test/README.md) 
 * [Sudoku Experiment](./experiments/sudoku/README.md)
 * [Geometry Experiment](./experiments/geometry/README.md)
+
+## Author Notes
+
+We greatly appreciate users applying our tool to their problems. Feel free to contact Connor or Fengyu with questions, issues, and suggestions; issues and forks on the repository page are welcome.
+
+If you find **dQP** useful, please consider citing the associated paper:
+
+```bibtex
+@inproceedings{NEURIPS2025_dQP,
+  author    = {Connor W. Magoon and Fengyu Yang and Noam Aigerman and Shahar Z. Kovalsky},
+  title     = {Differentiation Through Black-Box Quadratic Programming Solvers},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2025},
+  publisher = {Curran Associates, Inc.},
+  note      = {To appear}
+}
+```

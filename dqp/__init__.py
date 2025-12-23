@@ -25,8 +25,9 @@ Basic usage:
 from dqp.dQP import dQP_layer, build_settings
 from dqp.sparse_helper import initialize_torch_from_npz, csc_torch_to_scipy, csc_scipy_to_torch
 from dqp.lin_solvers import get_dense_solvers, get_sparse_solvers
+from dqp.qp_diagnostic import benchmark
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 __all__ = [
     "dQP_layer",
     "build_settings",
