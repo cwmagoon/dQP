@@ -238,12 +238,15 @@ We greatly appreciate users applying our tool to their problems. Feel free to co
 If you find **dQP** useful, please consider citing the associated paper:
 
 ```bibtex
-@inproceedings{NEURIPS2025_dQP,
-  author    = {Connor W. Magoon and Fengyu Yang and Noam Aigerman and Shahar Z. Kovalsky},
-  title     = {Differentiation Through Black-Box Quadratic Programming Solvers},
-  booktitle = {Advances in Neural Information Processing Systems},
-  year      = {2025},
-  publisher = {Curran Associates, Inc.},
-  note      = {To appear}
+@inproceedings{NEURIPS2025_9bd9aa8c,
+ author = {Magoon, Connor and Yang, Fengyu and Aigerman, Noam and Kovalsky, Shahar},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {D. Belgrave and C. Zhang and H. Lin and R. Pascanu and P. Koniusz and M. Ghassemi and N. Chen},
+ pages = {108486--108517},
+ publisher = {Curran Associates, Inc.},
+ title = {Differentiation Through Black-Box Quadratic Programming Solvers},
+ url = {https://proceedings.neurips.cc/paper_files/paper/2025/file/9bd9aa8c2326b67321eb1f5f281ba618-Paper-Conference.pdf},
+ volume = {38},
+ year = {2025}
 }
 ```
