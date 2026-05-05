@@ -1,5 +1,5 @@
 ## dQP
-<b>Differentiation Through Black-Box Quadratic Programming Solvers</b> [<a href="https://arxiv.org/pdf/2410.06324">Paper</a>] [<a href="https://neurips.cc/virtual/2025/loc/san-diego/poster/119180">Video</a>] [<a href="https://neurips.cc/media/PosterPDFs/NeurIPS%202025/119180.png?t=1762316861.5409572">Poster</a>] <br> 
+<b>Differentiation Through Black-Box Quadratic Programming Solvers</b> [<a href="https://papers.nips.cc/paper_files/paper/2025/file/9bd9aa8c2326b67321eb1f5f281ba618-Paper-Conference.pdf">Paper</a>] [<a href="https://neurips.cc/virtual/2025/loc/san-diego/poster/119180">Video</a>] [<a href="https://neurips.cc/media/PosterPDFs/NeurIPS%202025/119180.png?t=1762316861.5409572">Poster</a>] <br> 
 <a href="https://cwmagoon.github.io/">Magoon<sup>\*</sup></a>, <a href="https://563925743.github.io/">Yang<sup>\*</sup></a>, <a href="https://noamaig.github.io/">Aigerman</a>, <a href="https://shaharkov.github.io/">Kovalsky</a><br>
 <i>NeurIPS (2025)</i>   
 
